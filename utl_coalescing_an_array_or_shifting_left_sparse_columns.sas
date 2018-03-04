@@ -1,15 +1,30 @@
 Coalescing an array or shifting left sparse columns
 
-  I renamed the colums to make the solution easier to understand.
-  Op can rename back later.
+I have updated github with an elegant solution by Akrun.
 
+R one liner (see below)
+
+github
+https://tinyurl.com/y84cz283
+https://github.com/rogerjdeangelis/utl_coalescing_an_array_or_shifting_left_sparse_columns
+
+  I renamed the colums to make the solution easier to understand.
+  Easy to rename back.
 
   Two solutions
 
      1. SAS/WPS base
      2. WPS/Proc R or IML/R
+     3. Improved WPS/Proc R or IML/R  ** new solution from
 
+          https://tinyurl.com/y7xf49kw
+          https://stackoverflow.com/questions/49079789/using-r-to-shift-values-to-the-left-of-data-frame
 
+          Akrun profile
+          https://stackoverflow.com/users/3732271/akrun
+
+     (this is an indexing problem but I could not see the 'index' mapping solution)
+     ( thought about peek, poke and adr)
 see
 https://communities.sas.com/t5/SAS-Procedures/Data-replacing/m-p/441152
 
@@ -53,7 +68,7 @@ INPUT
 PROCESS
 =======
 
-  SAS/WPS Base
+  1. SAS/WPS Base
 
      proc transpose data=sd1.have out=havxpo(drop=_name_);
        by regadjusted;
@@ -66,7 +81,7 @@ PROCESS
      run;quit;
 
 
-   WPS/PROC R - IML/R (WORKING ODE)
+  2. WPS/PROC R - IML/R (WORKING ODE)
 
      want <- matrix(NA, nrow = nrow(have), ncol = ncol(have));
      for (i in 1:nrow(have)) {
@@ -74,6 +89,13 @@ PROCESS
         res<-hav[ !is.na( hav ) ];    * res has just the non-missinh;
         want[i,1:length(res)]<-res;   * overwrite mat;
      };
+
+  3. IMPROVED WPS/PROC R OR IML/R
+
+     * apply put the consecutive not missing first and the missings after;
+     * very elegant;
+
+     want <-  t(apply(have, 1, function(x) c(x[!is.na(x)], x[is.na(x)])));
 
 OUTPUT
 ======
@@ -199,6 +221,7 @@ run;quit;
 
 ;
 
+
 * SAS;
 proc transpose data=sd1.have out=havxpo(drop=_name_);
   by regadjusted;
@@ -246,6 +269,24 @@ for (i in 1:nrow(have)) {
 };
 endsubmit;
 import r=want data=wrk.want;
+run;quit;
+');
+
+* Improved R solution;
+
+%utl_submit_wps64('
+libname sd1 "d:/sd1";
+options set=R_HOME "C:/Program Files/R/R-3.3.2";
+libname wrk "%sysfunc(pathname(work))";
+libname hlp "C:\Program Files\SASHome\SASFoundation\9.4\core\sashelp";
+proc r;
+submit;
+source("C:/Program Files/R/R-3.3.2/etc/Rprofile.site", echo=T);
+library(haven);
+have <-read_sas("d:/sd1/have.sas7bdat");
+want <-  t(apply(have, 1, function(x) c(x[!is.na(x)], x[is.na(x)])));
+endsubmit;
+import r=want data=wrk.want_df;
 run;quit;
 ');
 
